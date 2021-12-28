@@ -69,6 +69,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 		float textHeight = sb.pSmallFont.mFont.GetHeight() * notuas_hudscale;
 		float padding = 2 * notuas_hudscale;
 		float padStep = textHeight + padding;
+		float halfStep = padStep / 2;
 		float baseOffset = (-7 * textHeight) + (-3 * padding);
 		Vector2 hudScale = (notuas_hudscale, notuas_hudscale);
 
@@ -90,23 +91,45 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 
 		// Wound List
 		int woundListOffsetX = -12;
-		float woundListOffsetY = baseOffset + (3 * textHeight) + padStep;
+		float woundListOffsetY = baseOffset + (3 * textHeight) + (3 * padStep);
 
 		if (wh.critWounds.Size() == 0)
 		{
 			sb.DrawString(
 				sb.pSmallFont,
 				"No treatable wounds",
-				(0, woundListOffsetY + (2 * padStep)),
+				(0, woundListOffsetY),
 				sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_CENTER,
 				scale: hudScale
 			);
 		}
 		else
 		{
+			Array<string> wounds;
 			int idx = (currentWound)? wh.critWounds.Find(currentWound) : 0;
 			int loopMin = Min(idx - 2, wh.critWounds.Size() - 5);
 			int loopMax = Max(idx + 2, 4);
+
+			// Compile list
+			for (int i = loopMin; i <= loopMax; i++)
+			{
+				if (i < 0 || i > wh.critWounds.Size() - 1) continue;
+
+				string textColour;
+				if (AverageStatus(wh.critWounds[i]) >= 15)
+				{
+					textColour = (i == idx)? "\ca" : "\cr"; // Red / Dark Red
+				}
+				else
+				{
+					textColour = (i == idx)? "\cd" : "\cq"; // Green / Dark Green
+				}
+
+				string pointer = (i == idx)? " <" : "";
+				wounds.push(textColour..wh.critWounds[i].description..pointer);
+				woundListOffsetY -= halfStep;
+			}
+			woundListOffsetY += halfStep; // accomodation
 
 			// Top overflow dot
 			if (loopMin > 0)
@@ -121,30 +144,13 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 			}
 
 			// The actual list
-			for (int i = loopMin; i <= loopMax; i++)
+			for (int i = 0; i < wounds.Size(); i++)
 			{
-				if (i < 0 || i > wh.critWounds.Size() - 1)
-				{
-					continue;
-				}
-
-				int textColour;
-				if (AverageStatus(wh.critWounds[i]) >= 15)
-				{
-					textColour = (i == idx)? Font.CR_RED : Font.CR_DARKRED;
-				}
-				else
-				{
-					textColour = (i == idx)? Font.CR_GREEN : Font.CR_DARKGREEN;
-				}
-
-				string pointer = (i == idx)? " <" : "";
 				sb.DrawString(
 					sb.pSmallFont,
-					wh.critWounds[i].description .. pointer,
+					wounds[i],
 					(woundListOffsetX, woundListOffsetY),
 					sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_RIGHT,
-					textColour,
 					scale: hudScale
 				);
 
@@ -169,7 +175,6 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 		{
 			int woundInfoOffsetX = 12;
 			float woundInfoOffsetY = baseOffset + (3 * textHeight) + (3 * padStep);
-			float halfStep = padStep / 2;
 			Array<string> status;
 			if (currentWound.open <= 0)
 			{
@@ -239,11 +244,13 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 				sb.DrawString(
 					sb.pSmallFont,
 					status[i],
-					(woundInfoOffsetX, woundInfoOffsetY + (i * (textHeight + padding))),
+					(woundInfoOffsetX, woundInfoOffsetY),
 					sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_LEFT,
 					Font.CR_GRAY,
 					scale: hudScale
 				);
+
+				woundInfoOffsetY += padStep;
 			}
 		}
 
