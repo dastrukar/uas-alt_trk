@@ -1,0 +1,257 @@
+const UAS_HDLD_TRAUMAKIT = "trk";
+
+class UaS_TraumaKit : HDWeapon {
+	string statusMessage;
+	StatusInfo currentMessage;
+	WoundInfo currentWound;
+	UaS_WoundHandler wh;
+	HDPlayerPawn patient, lastpatient;
+	transient cvar autostrip;
+
+	Default {
+		radius 4;
+		height 4;
+		Inventory.Amount 1;
+		Inventory.MaxAmount 1;
+		Inventory.PickupMessage "Picked up a personal trauma kit.";
+		Inventory.Icon "UGSIF0";
+		Inventory.PickupSound "weapons/pocket";
+		+INVENTORY.INVBAR;
+		+INVENTORY.PERSISTENTPOWER;
+		+INVENTORY.IGNORESKILL;
+		+WEAPON.NO_AUTO_SWITCH;
+		+hdweapon.fitsinbackpack;
+		//+WEAPON.NOAUTOFIRE;
+		weapon.slotpriority 0.5;
+		weapon.slotnumber 9;
+		hdweapon.refid UAS_HDLD_TRAUMAKIT;
+		scale 0.5;
+		tag "Trauma Kit";
+	}
+
+	override double weaponbulk(){
+		double b = 0;
+		b += (weaponstatus[TKS_PAINKILLER] / 20) * (ENC_STIMPACK * 0.4);
+		b += (weaponstatus[TKS_SALINE] / 1000) * (ENC_STIMPACK * 2 * 0.8);
+		b += (weaponstatus[TKS_BIOFOAM] / 250) * (6 * 0.6);
+		b += (weaponstatus[TKS_STAPLES] / 25) * (6 * 0.1);
+		b = max(b, 15);
+		return b;
+	}
+
+	states {
+		spawn:
+			UGSI F -1;
+			stop;
+	}
+
+	override void DoEffect() {
+		if (!(owner.player.readyweapon is 'UaS_TraumaKit')) { return; }
+		statusMessage = "--- \cyTrauma Kit\c- ---\n";
+
+		if (patient) { statusMessage = statusmessage.."Treating \cg"..patient.player.getusername().."\n\n"; }
+		else { statusMessage = statusmessage.."\n\n"; }
+
+		SetHelpText();
+		SetPatient();
+		WoundList();
+		CycleWounds();
+		CycleTools();
+		HandleSupplies();
+
+		switch (weaponstatus[TK_SELECTED]) {
+			case T_PAINKILLER:
+				HandlePainkiller();
+				break;
+			case T_SALINE:
+				HandleSaline();
+				break;
+			case T_FORCEPS:
+				HandleForceps();
+				break;
+			case T_BIOFOAM:
+				HandleBiofoam();
+				break;
+			case T_STAPLER:
+				HandleStapler();
+				break;
+			case T_SUTURES:
+				HandleSutures();
+				break;
+			case T_SCALPEL:
+				HandleScalpel();
+				break;
+		}
+
+		if (currentWound) { statusmessage = statusmessage..currentWound.WoundStatus().."\n"; }
+
+		TickMessages();
+		A_WeaponMessage(statusMessage);
+	}
+
+	// Somewhat copied from HD, largely rewritten
+	bool HandleStrip() {
+		if (!autostrip) { autostrip = CVar.GetCVar("hd_autostrip", owner.player); }
+		string itemname, imperative;
+		// check for intervening items, otherwise exit early
+		bool intervening = !HDPlayerPawn.CheckStrip(patient, patient, false);
+		if(!intervening) return true;
+
+		if(patient.countinv("WornRadsuit")) { itemname = "environment suit "; }
+		else if(patient.countinv("HDArmourWorn")) { itemname = "armour "; }
+		else { itemname = "worn layers "; }
+
+		// check owner or other
+		if(patient == owner) {
+			imperative = "Take off your ";
+			//handle autostrip
+			if(autostrip.GetBool()) {
+				HDPlayerPawn.CheckStrip(owner, owner);
+				return false;
+			}
+		}
+		else {
+			imperative = "Have them take off their ";
+		}
+		// display message
+		currentmessage.text = imperative..itemname.."first!\n";
+		currentmessage.timeout = 2*35;
+		return false;
+	}
+
+	void SetPatient() {
+		HDPlayerPawn other;
+		FLineTraceData tktrace;
+		owner.LineTrace(owner.angle, 42, owner.pitch, offsetz: owner.height-12, data: tktrace);
+		if (tktrace.hitactor && tktrace.hitactor is "HDPlayerPawn") { other = HDPlayerPawn(tktrace.hitactor); }
+
+		if (other && (owner.player.cmd.buttons & BT_ZOOM)) { patient = other; }
+		if (!patient || levellocals.Vec3Diff(owner.pos, patient.pos).length() > owner.radius * 4) { patient = HDPlayerPawn(owner); }
+
+		wh = UaS_WoundHandler(patient.FindInventory('UaS_WoundHandler'));
+		if (!wh) { console.printf("No wound handler!"); return; }
+		if (patient != lastpatient) { currentWound = null; }
+		lastpatient = patient;
+	}
+
+	void TickMessages() {
+		// Tick down transient messages
+		if (currentmessage.timeout > 0) {
+			statusmessage = statusmessage..currentmessage.text;
+			currentmessage.timeout--;
+		}
+	}
+
+	void WoundList() {
+		if (wh.critwounds.size() == 0) {
+			statusmessage = statusmessage.."No treatable wounds\n\n";
+			return;
+		}
+		int idx = 0;
+		if (currentWound) {
+			idx = wh.critwounds.Find(currentWound);
+		}
+		int loopmin = min(idx - 2, wh.critwounds.size() - 5);
+		int loopmax = max(idx + 2, 4);
+		if (loopmin > 0) { statusmessage = statusmessage..". . .\n"; }
+		else { statusmessage = statusmessage.."\n"; }
+		for (int i = loopmin; i <= loopmax; i++) {
+			if(i<0 || i > wh.critwounds.size()-1) { continue; }
+			string hilite;
+			if (currentWound && i == idx) {
+				if (currentWound.AverageStatus() >= 15) { hilite = "\ca"; }
+				else { hilite = "\cd"; }
+			}
+			else {
+				if (wh.critwounds[i].AverageStatus() >= 15) { hilite = "\cr"; }
+ 				else { hilite = "\cq"; }
+ 			}
+			statusmessage = statusmessage..hilite..wh.critwounds[i].description.."\n";
+		}
+		if (loopmax < wh.critwounds.size() - 1) { statusmessage = statusmessage..". . .\n"; }
+		else { statusmessage = statusmessage.."\n"; }
+		statusmessage = statusmessage.."\n";
+	}
+
+	void CycleWounds() {
+		if (wh.critwounds.size() == 0) { return; }
+		int idx = 0;
+		if (currentWound) { idx = wh.critwounds.Find(currentWound); }
+		if (!(owner.player.cmd.buttons & BT_FIREMODE)) { return; }
+		if ((owner.player.cmd.buttons & BT_RELOAD) && !(owner.player.oldbuttons & BT_RELOAD)) {
+			idx = (idx + 1) % wh.critwounds.size();
+		}
+		else if ((owner.player.cmd.buttons & BT_ALTRELOAD) && !(owner.player.oldbuttons & BT_ALTRELOAD)) {
+			idx = (idx - 1) % wh.critwounds.size();
+			if(idx < 0) { idx = wh.critwounds.size() - 1; }
+		}
+		currentWound = GetWound(idx);
+	}
+
+	void CycleTools(int set = -1) {
+		if ((owner.player.cmd.buttons & BT_FIREMODE)) { return; }
+		if (set != -1) { weaponstatus[TK_SELECTED] = set; return; }
+		if ((owner.player.cmd.buttons & BT_RELOAD) && !(owner.player.oldbuttons & BT_RELOAD)) {
+			weaponstatus[TK_SELECTED] = (weaponstatus[TK_SELECTED] + 1) % 7;
+			weaponstatus[TK_HOLD] = 0;
+			currentmessage.text = "";
+			currentmessage.timeout = 0;
+		}
+		else if ((owner.player.cmd.buttons & BT_ALTRELOAD) && !(owner.player.oldbuttons & BT_ALTRELOAD)) {
+			weaponstatus[TK_SELECTED] = (weaponstatus[TK_SELECTED] - 1);
+			if(weaponstatus[TK_SELECTED] < 0) { weaponstatus[TK_SELECTED] = 6; }
+			weaponstatus[TK_HOLD] = 0;
+			currentmessage.text = "";
+			currentmessage.timeout = 0;
+		}
+	}
+
+	WoundInfo GetWound(int index) {
+		if (wh.critwounds.size() <= 0) { return null; }
+		return wh.critwounds[index];
+	}
+
+	void DebugStatus() {
+		if (currentWound) {
+			statusmessage = statusmessage.."dirty "..currentWound.dirty.."\n";
+			statusmessage = statusmessage.."obstructed "..currentWound.obstructed.."\n";
+			statusmessage = statusmessage.."open "..currentWound.open.."\n";
+			statusmessage = statusmessage.."cavity "..currentWound.cavity.."\n";
+			statusmessage = statusmessage.."infection "..currentWound.infection.."\n";
+			statusmessage = statusmessage.."timer "..currentWound.timer.."\n";
+		}
+		statusMessage = statusMessage.."\n";
+		statusMessage = statusMessage.."Open Wounds "..patient.woundcount.."\n";
+		statusMessage = statusMessage.."Unstable Wounds "..patient.unstablewoundcount.."\n";
+		statusMessage = statusMessage.."Old Wounds "..patient.oldwoundcount.."\n";
+	}
+
+	struct StatusInfo {
+		string text;
+		int timeout;
+	}
+
+	enum ToolModes {
+		T_PAINKILLER,
+		T_SALINE,
+		T_FORCEPS,
+		T_BIOFOAM,
+		T_STAPLER,
+		T_SUTURES,
+		T_SCALPEL,
+	}
+
+	enum KitFlags {
+		//standard slots
+		TK_SELECTED,
+		TK_BUTTON,
+		TK_HOLD,
+		TK_SCALPEL_CAP,
+
+		//supply slots
+		TKS_PAINKILLER,
+		TKS_SALINE,
+		TKS_BIOFOAM,
+		TKS_STAPLES,
+	}
+}

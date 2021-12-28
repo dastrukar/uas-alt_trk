@@ -1,0 +1,1 @@
+nosave float notuas_hudscale=1.00;
