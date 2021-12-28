@@ -24,8 +24,9 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 	// try to not use statusmessage
 	override void DoEffect()
 	{
-		statusMessage = "\n\n\n\n\n\n\n\n\n";
+		statusMessage = "";
 
+		SetHelpText();
 		SetPatient();
 		CycleWounds();
 		CycleTools();
@@ -64,6 +65,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 	{
 		if (!patient) return;
 
+		// Floats for precision (also required for centering)
 		float textHeight = sb.pSmallFont.mFont.GetHeight() * notuas_hudscale;
 		float padding = 2 * notuas_hudscale;
 		float padStep = textHeight + padding;
@@ -246,7 +248,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 		}
 
 		// Tool info
-		int toolInfoOffset = baseOffset + (2 * textHeight) + (4 * padding);
+		float toolInfoOffset = baseOffset + (4 * textHeight) + (7 * padStep);
 		Array<string> trueStatusMessage;
 		statusMessage.Split(trueStatusMessage, "\n");
 
