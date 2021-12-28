@@ -6,14 +6,17 @@ class NotUaS_TraumaKitReplacer : EventHandler
 	{
 		let T = e.Thing;
 
-		if (
-			T &&
-			T.GetClassName() == "UaS_TraumaKit" &&
-			UaS_TraumaKit(T).Owner
-		)
+		if (T && T.GetClassName() == "UaS_TraumaKit")
 		{
 			let trk = UaS_TraumaKit(T);
-			trk.Owner.GiveInventory("NotUaS_TraumaKit", 1);
+			if (trk.Owner)
+			{
+				trk.Owner.GiveInventory("NotUaS_TraumaKit", 1);
+			}
+			else
+			{
+				Actor.Spawn("NotUaS_TraumaKit", trk.pos);
+			}
 			trk.destroy();
 		}
 	}
@@ -21,6 +24,24 @@ class NotUaS_TraumaKitReplacer : EventHandler
 
 class NotUaS_TraumaKit : UaS_TraumaKit
 {
+	override void ActualPickup(Actor other, bool silent)
+	{
+		let tk = HDWeapon(other.FindInventory("NotUaS_TraumaKit"));
+		if (tk)
+		{
+			other.A_Log("\cgRefilled Trauma Kit supplies", true);
+			A_StartSound("weapons/pocket");
+			tk.weaponStatus[TKS_PAINKILLER] += weaponStatus[TKS_PAINKILLER];
+			tk.weaponStatus[TKS_SALINE] += weaponStatus[TKS_SALINE];
+			tk.weaponStatus[TKS_BIOFOAM] += weaponStatus[TKS_BIOFOAM];
+			tk.weaponStatus[TKS_STAPLES] += weaponStatus[TKS_STAPLES];
+			self.Destroy();
+			return;
+		}
+
+		Super.ActualPickup(other, silent);
+	}
+
 	// try to not use statusmessage
 	override void DoEffect()
 	{
@@ -257,7 +278,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 		// Tool info
 		float toolInfoOffset = baseOffset + (4 * textHeight) + (7 * padStep);
 		Array<string> trueStatusMessage;
-		statusMessage.Split(trueStatusMessage, "\n");
+		statusMessage.Split(trueStatusMessage, "\n"); // temporary workaround
 
 		for (int i = 0; i < trueStatusMessage.Size(); i++)
 		{
