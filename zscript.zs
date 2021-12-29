@@ -108,6 +108,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 			"--- \cyTrauma Kit\c- ---\n",
 			(0, baseOffset),
 			sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_CENTER,
+			Font.CR_GRAY,
 			scale: hudScale
 		);
 		sb.DrawString(
@@ -115,6 +116,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 			"Treating \cg" .. patient.player.GetUsername(),
 			(0, baseOffset + textHeight),
 			sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_CENTER,
+			Font.CR_GRAY,
 			scale: hudScale
 		);
 
