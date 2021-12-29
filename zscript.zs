@@ -12,13 +12,16 @@ class NotUaS_TraumaKitReplacer : EventHandler
 
 			if (trk.Owner)
 			{
-				trk.Owner.GiveInventory("NotUaS_TraumaKit", 1);
 				let tk = NotUaS_TraumaKit(trk.Owner.FindInventory("NotUaS_TraumaKit"));
+				trk.Owner.GiveInventory("NotUaS_TraumaKit", 1);
 
-				tk.weaponStatus[tk.TKS_PAINKILLER] += trk.weaponStatus[trk.TKS_PAINKILLER];
-				tk.weaponStatus[tk.TKS_SALINE] += trk.weaponStatus[trk.TKS_SALINE];
-				tk.weaponStatus[tk.TKS_BIOFOAM] += trk.weaponStatus[trk.TKS_BIOFOAM];
-				tk.weaponStatus[tk.TKS_STAPLES] += trk.weaponStatus[trk.TKS_STAPLES];
+				if (tk)
+				{
+					tk.weaponStatus[tk.TKS_PAINKILLER] += trk.weaponStatus[trk.TKS_PAINKILLER];
+					tk.weaponStatus[tk.TKS_SALINE] += trk.weaponStatus[trk.TKS_SALINE];
+					tk.weaponStatus[tk.TKS_BIOFOAM] += trk.weaponStatus[trk.TKS_BIOFOAM];
+					tk.weaponStatus[tk.TKS_STAPLES] += trk.weaponStatus[trk.TKS_STAPLES];
+				}
 			}
 			else Actor.Spawn("NotUaS_TraumaKit", trk.pos);
 			trk.destroy();
