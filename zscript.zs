@@ -9,14 +9,18 @@ class NotUaS_TraumaKitReplacer : EventHandler
 		if (T && T.GetClassName() == "UaS_TraumaKit")
 		{
 			let trk = UaS_TraumaKit(T);
+
 			if (trk.Owner)
 			{
 				trk.Owner.GiveInventory("NotUaS_TraumaKit", 1);
+				let tk = NotUaS_TraumaKit(trk.Owner.FindInventory("NotUaS_TraumaKit"));
+
+				tk.weaponStatus[tk.TKS_PAINKILLER] += trk.weaponStatus[trk.TKS_PAINKILLER];
+				tk.weaponStatus[tk.TKS_SALINE] += trk.weaponStatus[trk.TKS_SALINE];
+				tk.weaponStatus[tk.TKS_BIOFOAM] += trk.weaponStatus[trk.TKS_BIOFOAM];
+				tk.weaponStatus[tk.TKS_STAPLES] += trk.weaponStatus[trk.TKS_STAPLES];
 			}
-			else
-			{
-				Actor.Spawn("NotUaS_TraumaKit", trk.pos);
-			}
+			else Actor.Spawn("NotUaS_TraumaKit", trk.pos);
 			trk.destroy();
 		}
 	}
@@ -150,7 +154,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 				wounds.push(textColour..wh.critWounds[i].description..pointer);
 				woundListOffsetY -= halfStep;
 			}
-			woundListOffsetY += halfStep; // accomodation
+			woundListOffsetY += halfStep; // accommodation
 
 			// Top overflow dot
 			if (loopMin > 0)
