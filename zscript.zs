@@ -49,6 +49,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 	// try to not use statusmessage
 	override void DoEffect()
 	{
+		if (!(Owner.Player.ReadyWeapon is "NotUaS_TraumaKit")) return;
 		statusMessage = "";
 
 		SetHelpText();
@@ -125,6 +126,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 				"No treatable wounds",
 				(0, woundListOffsetY),
 				sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_CENTER,
+				Font.CR_GRAY,
 				scale: hudScale
 			);
 		}
@@ -164,6 +166,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 					". . .",
 					(woundListOffsetX, woundListOffsetY - padStep),
 					sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_RIGHT,
+					Font.CR_GRAY,
 					scale: hudScale
 				);
 			}
@@ -190,6 +193,7 @@ class NotUaS_TraumaKit : UaS_TraumaKit
 					". . .",
 					(woundListOffsetX, woundListOffsetY),
 					sb.DI_SCREEN_CENTER | sb.DI_TEXT_ALIGN_RIGHT,
+					Font.CR_GRAY,
 					scale: hudScale
 				);
 			}
